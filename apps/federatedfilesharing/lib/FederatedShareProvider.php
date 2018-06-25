@@ -30,6 +30,7 @@
 namespace OCA\FederatedFileSharing;
 
 use OC\Share20\Share;
+use OCP\Federation\ICloudFederationProviderManager;
 use OCP\Federation\ICloudIdManager;
 use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\Files\Folder;
@@ -91,6 +92,9 @@ class FederatedShareProvider implements IShareProvider {
 	/** @var \OCP\GlobalScale\IConfig */
 	private $gsConfig;
 
+	/** @var ICloudFederationProviderManager */
+	private $cloudFederationProviderManager;
+
 	/**
 	 * DefaultShareProvider constructor.
 	 *
@@ -105,6 +109,7 @@ class FederatedShareProvider implements IShareProvider {
 	 * @param IUserManager $userManager
 	 * @param ICloudIdManager $cloudIdManager
 	 * @param \OCP\GlobalScale\IConfig $globalScaleConfig
+	 * @param ICloudFederationProviderManager $cloudFederationProviderManager
 	 */
 	public function __construct(
 			IDBConnection $connection,
@@ -117,7 +122,8 @@ class FederatedShareProvider implements IShareProvider {
 			IConfig $config,
 			IUserManager $userManager,
 			ICloudIdManager $cloudIdManager,
-			\OCP\GlobalScale\IConfig $globalScaleConfig
+			\OCP\GlobalScale\IConfig $globalScaleConfig,
+			ICloudFederationProviderManager $cloudFederationProviderManager
 	) {
 		$this->dbConnection = $connection;
 		$this->addressHandler = $addressHandler;
@@ -130,6 +136,7 @@ class FederatedShareProvider implements IShareProvider {
 		$this->userManager = $userManager;
 		$this->cloudIdManager = $cloudIdManager;
 		$this->gsConfig = $globalScaleConfig;
+		$this->cloudFederationProviderManager = $cloudFederationProviderManager;
 	}
 
 	/**
@@ -960,6 +967,42 @@ class FederatedShareProvider implements IShareProvider {
 		}
 		$result = $this->config->getAppValue('files_sharing', 'incoming_server2server_share_enabled', 'yes');
 		return ($result === 'yes');
+	}
+
+
+	/**
+	 * check if users from other Nextcloud instances are allowed to send federated group shares
+	 *
+	 * @return bool
+	 */
+	public function isOutgoingServer2serverGroupShareEnabled() {
+		if ($this->gsConfig->onlyInternalFederation()) {
+			return false;
+		}
+		$result = $this->config->getAppValue('files_sharing', 'outgoing_server2server_group_share_enabled', 'no');
+		return ($result === 'yes');
+	}
+
+	/**
+	 * check if users are allowed to receive federated group shares
+	 *
+	 * @return bool
+	 */
+	public function isIncomingServer2serverGroupShareEnabled() {
+		if ($this->gsConfig->onlyInternalFederation()) {
+			return false;
+		}
+		$result = $this->config->getAppValue('files_sharing', 'incoming_server2server_group_share_enabled', 'no');
+		return ($result === 'yes');
+	}
+
+	/**
+	 * check if federated group sharing is supported, therefore the OCM API need to be enabled
+	 *
+	 * @return bool
+	 */
+	public function isFederatedGroupSharingSupported() {
+		return $this->cloudFederationProviderManager->isReady();
 	}
 
 	/**
