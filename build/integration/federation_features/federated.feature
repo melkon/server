@@ -28,6 +28,39 @@ Feature: federated
 			| share_with | user1@REMOTE |
 			| share_with_displayname | user1@REMOTE |
 
+	Scenario: Federated group share a file with another server
+		Given Using server "REMOTE"
+		And parameter "incoming_server2server_group_share_enabled" of app "files_sharing" is set to "yes"
+		And parameter "outgoing_server2server_group_share_enabled" of app "files_sharing" is set to "yes"
+		And user "gs-user1" exists
+		And user "gs-user2" exists
+		And group "group1" exists
+		And check that user "gs-user1" belongs to group "group1"
+		And check that user "gs-user2" belongs to group "group1"
+		And Using server "LOCAL"
+		And user "gs-user0" exists
+		When User "gs-user0" from server "LOCAL" shares "/textfile0.txt" with group "group1" from server "REMOTE"
+		Then the OCS status code should be "100"
+		And the HTTP status code should be "200"
+		And Share fields of last share match with
+			| id | A_NUMBER |
+			| item_type | file |
+			| item_source | A_NUMBER |
+			| share_type | 9 |
+			| file_source | A_NUMBER |
+			| path | /textfile0.txt |
+			| permissions | 19 |
+			| stime | A_NUMBER |
+			| storage | A_NUMBER |
+			| mail_send | 0 |
+			| uid_owner | gs-user0 |
+			| storage_id | home::gs-user0 |
+			| file_parent | A_NUMBER |
+			| displayname_owner | gs-user0 |
+			| share_with | group1@REMOTE |
+			| share_with_displayname | group1@REMOTE |
+
+
 	Scenario: Federate share a file with local server
 		Given Using server "LOCAL"
 		And user "user0" exists
